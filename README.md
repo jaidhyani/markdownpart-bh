@@ -1,18 +1,83 @@
-# Markdown Viewer KPart (QTextDocument-based)
+# markdownpart-bh
 
-## Introduction
+A fork of KDE's [markdownpart](https://invent.kde.org/utilities/markdownpart) - the
+Markdown viewer KPart, with blackjack. And configurable fonts. Mostly configurable fonts.
 
-This repository contains software for the rendered display of Markdown documents:
+## Why this fork exists
 
-* a Markdown viewer [KParts](https://api.kde.org/frameworks/kparts/html/index.html) plugin, which allows KParts-using applications to display files in Markdown format in the target format
+The stock part renders Markdown via `QTextDocument::setMarkdown()`. Qt's Markdown
+importer stamps code spans and code blocks with an **explicitly sized** fixed-pitch
+font at import time. In practice that means:
 
-The software is mainly a wrapper around the classes [QTextDocument](https://doc.qt.io/qt-5/qtextdocument.html) and [QTextBrowser](https://doc.qt.io/qt-5/qtextbrowser.html) from Qt's QWidgets library. The Markdown support is thus completely driven by the abilities of those classes.
+* Ctrl+wheel zoom (Qt's built-in `QTextEdit` zoom) scales everything **except**
+  code, which stays frozen at its imported size.
+* Changing the system fixed-width font (kdeglobals `fixed=`) doesn't reach the
+  preview either.
+* The part itself has no font or zoom configuration surface at all.
 
-## Using
+If you've ever zoomed a Markdown preview in Kate and watched the code blocks
+refuse to move, that's this.
 
-To use the MarkdownPart KParts plugin in a KParts-using applications, often you will need to configure that globally in the Plasma System Settings, and there in the "File Associations" page.
-Select the MIME type "text/markdown" and in the "Embedding" tab in the "Service Preference Order" group make sure "Markdown View (markdownpart)" is on top of the list.
+## What the fork adds
 
-## Issues
+* **Configurable fonts** - body and monospace family/size, via a config file.
+* **Zoom that scales code** - the part owns Ctrl+wheel zoom and rescales body
+  and monospace fonts together. Sub-notch wheel deltas (touchpads, forwarded
+  remote-desktop scrolls) are accumulated instead of dropped.
+* **Persistent zoom** - the zoom level survives restarts.
+* **Zoom UI** - a Zoom submenu (with current percentage) in the context menu,
+  plus `view_zoom_in` / `view_zoom_out` / `view_actual_size` actions declared in
+  the part's XMLGUI (View menu + toolbar) for hosts that merge part GUIs. The
+  actions deliberately carry no default shortcuts - hosts like Kate already own
+  Ctrl+= / Ctrl+- / Ctrl+0 and ambiguous-shortcut warnings help no one.
 
-Please report bugs and feature requests in the [KDE issue tracker](https://bugs.kde.org/enter_bug.cgi?product=markdownpart).
+## Configuration
+
+`~/.config/markdownpartbhrc`:
+
+```ini
+[Fonts]
+bodyFamily=          # empty = application default
+bodySize=11          # 0 = application default
+monoFamily=Hack      # default: monospace
+monoSize=13          # 0 = same as body size
+
+[View]
+zoom=1.0             # written automatically as you zoom
+```
+
+Font settings are read at part creation (restart the host app after editing);
+zoom applies live.
+
+## Building (Qt5/KF5)
+
+This branch is based on markdownpart `release/23.08` and builds against Qt5/KF5,
+matching e.g. Kate 23.08 on Ubuntu 24.04:
+
+```sh
+sudo apt install cmake extra-cmake-modules qtbase5-dev libkf5parts-dev \
+    libkf5i18n-dev libkf5coreaddons-dev libkf5widgetsaddons-dev gettext
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DQT_MAJOR_VERSION=5
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
+
+Installs as `markdownpartbh.so` alongside the stock part; it declares
+`InitialPreference: 15` so KParts-using hosts (like Kate's Document Preview
+plugin) pick it over the stock part (preference 0) automatically. No need to
+uninstall stock markdownpart.
+
+## Using with Kate
+
+Enable the **Document Preview** plugin (Settings → Configure Kate → Plugins),
+open a Markdown file, click **Preview** on the right sidebar. Ctrl+wheel over
+the preview zooms; right-click for the Zoom menu.
+
+## License
+
+LGPL-2.1-or-later, same as upstream. Original code copyright
+Friedrich W. H. Kossebau and KDE contributors; fork additions 2026 by
+Jai Dhyani and Claude (Anthropic's Claude Fable 5, working via Claude Code).
+
+Upstream issues belong in the [KDE tracker](https://bugs.kde.org/enter_bug.cgi?product=markdownpart);
+issues with the fork's additions belong here.

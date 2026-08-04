@@ -84,6 +84,9 @@ private:
     QAction* m_searchAction;
     QAction* m_searchNextAction;
     QAction* m_searchPreviousAction;
+    QAction* m_zoomInAction;
+    QAction* m_zoomOutAction;
+    QAction* m_zoomResetAction;
 
     MarkdownBrowserExtension* const m_browserExtension;
 
