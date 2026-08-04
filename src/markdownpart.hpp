@@ -11,6 +11,7 @@
 #include <KParts/ReadOnlyPart>
 // Qt
 #include <QByteArray>
+#include <QFont>
 #include <QPoint>
 
 class MarkdownBrowserExtension;
@@ -61,6 +62,11 @@ private:
     void prepareViewStateRestoringOnReload();
     void restoreScrollPosition();
 
+    void loadFontSettings();
+    void applyStyling();
+    void changeZoom(int steps);
+    void setZoom(qreal zoom);
+
     void handleOpenUrlRequest(const QUrl& url);
     void handleContextMenuRequest(QPoint globalPos,
                                   const QUrl& linkUrl,
@@ -85,6 +91,13 @@ private:
 
     QUrl m_previousUrl;
     QPoint m_previousScrollPosition;
+
+    QFont m_baseFont;
+    QString m_bodyFamily;
+    qreal m_bodySize = 0;
+    QString m_monoFamily;
+    qreal m_monoSize = 0;
+    qreal m_zoom = 1.0;
 };
 
 inline MarkdownView* MarkdownPart::view() const { return m_widget; }

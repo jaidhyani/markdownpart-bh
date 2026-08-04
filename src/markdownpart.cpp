@@ -16,8 +16,13 @@
 #include <KStandardAction>
 #include <KLocalizedString>
 #include <KFileItem>
+#include <KConfig>
+#include <KConfigGroup>
 // Qt
 #include <QTextDocument>
+#include <QTextBlock>
+#include <QTextCursor>
+#include <QTextFragment>
 #include <QFile>
 #include <QTextStream>
 #include <QMimeDatabase>
@@ -29,6 +34,11 @@
 #include <QApplication>
 #include <QMenu>
 #include <QVBoxLayout>
+// Std
+#include <cmath>
+#include <vector>
+
+static const QString configFileName = QStringLiteral("markdownpartbhrc");
 
 
 MarkdownPart::MarkdownPart(QWidget* parentWidget, QObject* parent, const KPluginMetaData& metaData, Modus modus)
@@ -80,6 +90,11 @@ MarkdownPart::MarkdownPart(QWidget* parentWidget, QObject* parent, const KPlugin
     connect(m_widget, QOverload<const QUrl &>::of(&MarkdownView::highlighted),
             this, &MarkdownPart::showHoveredLink);
 
+    m_baseFont = m_widget->font();
+    loadFontSettings();
+    connect(m_widget, &MarkdownView::zoomRequested,
+            this, &MarkdownPart::changeZoom);
+
     setupActions(modus);
 }
 
@@ -116,6 +131,88 @@ void MarkdownPart::setupActions(Modus modus)
     auto* closeFindBarShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), widget());
     closeFindBarShortcut->setContext(Qt::WidgetWithChildrenShortcut);
     connect(closeFindBarShortcut, &QShortcut::activated, m_searchToolBar, &SearchToolBar::hide);
+
+    // no keyboard zoom shortcuts: the host application (Kate) owns Ctrl+=/-/0
+    // for its editor and they conflict; ctrl+wheel over the view is the zoom UI
+}
+
+void MarkdownPart::loadFontSettings()
+{
+    KConfig config(configFileName);
+
+    const KConfigGroup fontsGroup(&config, QStringLiteral("Fonts"));
+    m_bodyFamily = fontsGroup.readEntry("bodyFamily", QString());
+    m_bodySize = fontsGroup.readEntry("bodySize", 0.0);
+    m_monoFamily = fontsGroup.readEntry("monoFamily", QStringLiteral("monospace"));
+    m_monoSize = fontsGroup.readEntry("monoSize", 0.0);
+
+    const KConfigGroup viewGroup(&config, QStringLiteral("View"));
+    m_zoom = viewGroup.readEntry("zoom", 1.0);
+}
+
+void MarkdownPart::applyStyling()
+{
+    QFont bodyFont = m_baseFont;
+    if (!m_bodyFamily.isEmpty()) {
+        bodyFont.setFamily(m_bodyFamily);
+    }
+    const qreal bodyBase = (m_bodySize > 0) ? m_bodySize : m_baseFont.pointSizeF();
+    bodyFont.setPointSizeF(bodyBase * m_zoom);
+    m_sourceDocument->setDefaultFont(bodyFont);
+
+    // Qt's markdown importer stamps code spans/blocks with an explicitly sized
+    // fixed-pitch font at import time, out of reach of both the default-font
+    // path and any system font setting. Restamp those fragments with our
+    // configured mono font, scaled by the current zoom.
+    const qreal monoBase = (m_monoSize > 0) ? m_monoSize : bodyBase;
+    QFont monoFont(m_monoFamily);
+    monoFont.setFixedPitch(true);
+    monoFont.setPointSizeF(monoBase * m_zoom);
+
+    struct Range { int start; int end; };
+    std::vector<Range> monoRanges;
+    for (QTextBlock block = m_sourceDocument->begin(); block.isValid(); block = block.next()) {
+        for (auto it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QTextCharFormat format = fragment.charFormat();
+            const bool isMono = format.fontFixedPitch()
+                || format.fontFamily().contains(QLatin1String("mono"), Qt::CaseInsensitive);
+            if (isMono) {
+                monoRanges.push_back({fragment.position(), fragment.position() + fragment.length()});
+            }
+        }
+    }
+
+    QTextCharFormat monoFormat;
+    monoFormat.setFont(monoFont, QTextCharFormat::FontPropertiesSpecifiedOnly);
+    QTextCursor cursor(m_sourceDocument);
+    cursor.beginEditBlock();
+    for (const Range& range : monoRanges) {
+        cursor.setPosition(range.start);
+        cursor.setPosition(range.end, QTextCursor::KeepAnchor);
+        cursor.mergeCharFormat(monoFormat);
+    }
+    cursor.endEditBlock();
+}
+
+void MarkdownPart::changeZoom(int steps)
+{
+    setZoom(m_zoom * std::pow(1.1, steps));
+}
+
+void MarkdownPart::setZoom(qreal zoom)
+{
+    m_zoom = qBound(0.2, zoom, 8.0);
+
+    KConfig config(configFileName);
+    KConfigGroup viewGroup(&config, QStringLiteral("View"));
+    viewGroup.writeEntry("zoom", m_zoom);
+    config.sync();
+
+    applyStyling();
 }
 
 bool MarkdownPart::openFile()
@@ -138,6 +235,7 @@ bool MarkdownPart::openFile()
     m_sourceDocument->setMarkdown(text);
     const QUrl b = QUrl::fromLocalFile(localFilePath()).adjusted(QUrl::RemoveFilename);
     m_sourceDocument->setBaseUrl(b);
+    applyStyling();
 
     restoreScrollPosition();
 
@@ -185,6 +283,7 @@ bool MarkdownPart::doCloseStream()
 
     m_sourceDocument->setMarkdown(text);
     m_sourceDocument->setBaseUrl(QUrl());
+    applyStyling();
 
     restoreScrollPosition();
 
