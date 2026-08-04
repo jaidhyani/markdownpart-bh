@@ -185,7 +185,7 @@ void MarkdownPart::applyStyling()
             }
             const QTextCharFormat format = fragment.charFormat();
             const bool isMono = format.fontFixedPitch()
-                || format.fontFamily().contains(QLatin1String("mono"), Qt::CaseInsensitive);
+                || format.font().family().contains(QLatin1String("mono"), Qt::CaseInsensitive);
             if (isMono) {
                 monoRanges.push_back({fragment.position(), fragment.position() + fragment.length()});
             }
