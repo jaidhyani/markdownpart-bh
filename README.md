@@ -49,6 +49,13 @@ zoom=1.0             # written automatically as you zoom
 Font settings are read at part creation (restart the host app after editing);
 zoom applies live.
 
+## Installing via an AI agent
+
+If you use a coding agent (Claude Code, Codex, etc.), point it at
+[AGENTS.md](./AGENTS.md) - a complete clone-to-verified-working install guide
+written for agents, including compatibility checks and the failure modes we hit
+so yours doesn't have to.
+
 ## Building (Qt5/KF5)
 
 This branch is based on markdownpart `release/23.08` and builds against Qt5/KF5,
