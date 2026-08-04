@@ -40,6 +40,17 @@ ecm_set_disabled_deprecation_versions(
 add_definitions(-DQT_NO_CONTEXTLESS_CONNECT)
 add_subdirectory(src)
 
-ki18n_install(po)
+# ki18n_install(po)  # disabled in fork: .mo files would conflict with the stock markdownpart package
 
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+# Debian packaging: cpack -B <dir> from the build directory
+set(CPACK_PACKAGE_NAME "markdownpartbh")
+set(CPACK_PACKAGE_VERSION "${MARKDOWNPART_VERSION}")
+set(CPACK_PACKAGE_CONTACT "Jai Dhyani <jai@separatrix.ai>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Markdown viewer KPart with configurable fonts and code-scaling zoom")
+set(CPACK_DEBIAN_PACKAGE_SECTION "kde")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_GENERATOR "DEB")
+include(CPack)
