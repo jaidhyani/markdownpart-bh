@@ -9,6 +9,7 @@
 // Qt
 #include <QScrollBar>
 #include <QContextMenuEvent>
+#include <QWheelEvent>
 
 
 MarkdownView::MarkdownView(QTextDocument* document, QWidget* parent)
@@ -46,6 +47,27 @@ int MarkdownView::scrollPositionX() const
 int MarkdownView::scrollPositionY() const
 {
     return verticalScrollBar()->value();
+}
+
+void MarkdownView::wheelEvent(QWheelEvent* event)
+{
+    // QTextEdit's built-in ctrl-wheel zoom only scales the default font, leaving
+    // fragments with explicit sizes (code spans/blocks) untouched. Handle zoom
+    // ourselves so the part can rescale every font consistently.
+    if (event->modifiers() & Qt::ControlModifier) {
+        // touchpads and forwarded remote-desktop scrolls deliver deltas smaller
+        // than one notch (120); accumulate so they still add up to zoom steps
+        m_accumulatedWheelDelta += event->angleDelta().y();
+        const int steps = m_accumulatedWheelDelta / 120;
+        if (steps != 0) {
+            m_accumulatedWheelDelta -= steps * 120;
+            Q_EMIT zoomRequested(steps);
+        }
+        event->accept();
+        return;
+    }
+    m_accumulatedWheelDelta = 0;
+    QTextBrowser::wheelEvent(event);
 }
 
 void MarkdownView::contextMenuEvent(QContextMenuEvent* event)

@@ -2,9 +2,9 @@ add_definitions(-DTRANSLATION_DOMAIN=\"markdownpart\")
 
 configure_file(markdownpart.json.in ${CMAKE_CURRENT_BINARY_DIR}/markdownpart.json @ONLY)
 
-add_library(markdownpart MODULE)
+add_library(markdownpartbh MODULE)
 
-target_sources(markdownpart PRIVATE
+target_sources(markdownpartbh PRIVATE
     searchtoolbar.cpp
     markdownview.cpp
     markdownpartfactory.cpp
@@ -19,17 +19,13 @@ target_sources(markdownpart PRIVATE
     markdownpart.qrc
 )
 
-ki18n_wrap_ui(markdownpart searchtoolbar.ui)
+ki18n_wrap_ui(markdownpartbh searchtoolbar.ui)
 
-target_link_libraries(markdownpart
+target_link_libraries(markdownpartbh
     KF6::I18n
     KF6::Parts
+    KF6::ConfigCore
     Qt6::Widgets
 )
 
-install(TARGETS markdownpart  DESTINATION ${KDE_INSTALL_PLUGINDIR}/kf6/parts)
-
-install(
-    FILES org.kde.markdownpart.metainfo.xml
-    DESTINATION ${KDE_INSTALL_METAINFODIR}
-)
+install(TARGETS markdownpartbh  DESTINATION ${KDE_INSTALL_PLUGINDIR}/kf6/parts)

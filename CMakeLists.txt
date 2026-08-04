@@ -28,6 +28,7 @@ find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
 )
 
 find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
+    Config
     I18n
     Parts
 )

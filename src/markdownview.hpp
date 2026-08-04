@@ -29,9 +29,14 @@ public:
 Q_SIGNALS:
     void contextMenuRequested(QPoint globalPos, const QUrl& linkUrl,
                               bool hasSelection);
+    void zoomRequested(int steps);
 
 protected:
     void contextMenuEvent(QContextMenuEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
+
+private:
+    int m_accumulatedWheelDelta = 0;
 };
 
 #endif
