@@ -56,10 +56,20 @@ If you use a coding agent (Claude Code, Codex, etc.), point it at
 written for agents, including compatibility checks and the failure modes we hit
 so yours doesn't have to.
 
-## Building (Qt5/KF5)
+## Branches
 
-This branch is based on markdownpart `release/23.08` and builds against Qt5/KF5,
-matching e.g. Kate 23.08 on Ubuntu 24.04:
+* **`release/23.08`** - Qt5/KF5, for Kate ≤ 23.x (e.g. stock Ubuntu 24.04).
+  Verified end-to-end.
+* **`qt6`** - the same features on upstream master, Qt6/KF6, for Kate 24+.
+  Compiles clean (Qt 6.8 / KF 6.10); runtime reports welcome.
+
+Prebuilt amd64 debs for both are on the
+[Releases page](https://github.com/jaidhyani/markdownpart-bh/releases).
+
+## Building (Qt5/KF5 branch shown)
+
+The `release/23.08` branch builds against Qt5/KF5, matching e.g. Kate 23.08 on
+Ubuntu 24.04:
 
 ```sh
 sudo apt install cmake extra-cmake-modules qtbase5-dev libkf5parts-dev \

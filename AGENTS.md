@@ -12,47 +12,61 @@ uses to render Markdown) adding configurable fonts and a Ctrl+wheel zoom that
 scales code blocks along with body text. Stock markdownpart/Qt cannot do this;
 see README.md for the mechanism.
 
-## Step 0 - check compatibility BEFORE building
+## Step 0 - pick the branch to match the host's Qt version
 
-This branch (`release/23.08`) is **Qt5/KF5 only**. A KPart must match the Qt
-major version of its host. Check the user's Kate:
+A KPart must match the Qt major version of its host. Check the user's Kate:
 
 ```sh
 kate --version        # needs a display; over ssh: QT_QPA_PLATFORM=offscreen kate --version
 ```
 
-* Kate **23.x or older** → Qt5/KF5 → this branch works. Proceed.
-* Kate **24.x or newer** → Qt6/KF6 → **this branch will not load.** There is no
-  Qt6 port here yet (upstream master is Qt6 but lacks these features). Tell the
-  user honestly, and consider porting the ~150-line diff on top of upstream
-  master instead - the two commits after the fork point are self-contained.
+* Kate **23.x or older** → Qt5/KF5 → branch **`release/23.08`**. Fully verified
+  end-to-end on Ubuntu 24.04 + Kate 23.08.
+* Kate **24.x or newer** → Qt6/KF6 → branch **`qt6`**. Status as of 2026-08-04:
+  compiles clean against Qt 6.8 / KF 6.10+ (Ubuntu 25.04) but **not yet
+  runtime-verified in a KF6 Kate** - your user may be the first. Report the
+  outcome either way at the issue tracker; agents welcome.
 
-Distro notes: dependency package names below are Debian/Ubuntu (verified on
-Ubuntu 24.04 "noble"). Fedora/Arch/openSUSE equivalents are the usual
-`extra-cmake-modules`, Qt5 base devel, and KF5 Parts/I18n/CoreAddons/
-WidgetsAddons devel packages.
+Prebuilt amd64 debs for both exist under GitHub Releases - check there before
+building from source.
+
+Distro notes: dependency package names below are Debian/Ubuntu. Fedora/Arch/
+openSUSE equivalents are the usual `extra-cmake-modules`, Qt base devel, and
+KF Parts/I18n/CoreAddons/WidgetsAddons/Config devel packages of the matching
+major version.
 
 ## Step 1 - dependencies
+
+Qt5/KF5 (`release/23.08`):
 
 ```sh
 sudo apt-get install -y cmake extra-cmake-modules qtbase5-dev libkf5parts-dev \
     libkf5i18n-dev libkf5coreaddons-dev libkf5widgetsaddons-dev gettext
 ```
 
+Qt6/KF6 (`qt6`):
+
+```sh
+sudo apt-get install -y cmake extra-cmake-modules qt6-base-dev qt6-tools-dev \
+    libkf6parts-dev libkf6i18n-dev libkf6coreaddons-dev libkf6widgetsaddons-dev \
+    libkf6config-dev gettext
+```
+
 ## Step 2 - build and install
 
 ```sh
-git clone --branch release/23.08 https://github.com/jaidhyani/markdownpart-bh.git
+git clone --branch <branch-from-step-0> https://github.com/jaidhyani/markdownpart-bh.git
 cd markdownpart-bh
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DQT_MAJOR_VERSION=5
+cmake -B build -DCMAKE_BUILD_TYPE=Release   # add -DQT_MAJOR_VERSION=5 on release/23.08
 cmake --build build -j$(nproc)
 sudo cmake --install build
 ```
 
-Verify the plugin landed (path varies by distro; this is the Debian/Ubuntu one):
+Verify the plugin landed (path varies by distro; this is the Debian/Ubuntu one;
+`kf5` → `kf6` on the qt6 branch):
 
 ```sh
-ls /usr/lib/*/qt5/plugins/kf5/parts/markdownpartbh.so
+ls /usr/lib/*/qt*/plugins/kf*/parts/markdownpartbh.so
 ```
 
 The stock `markdownpart.so` may sit alongside it - that's fine and expected.
