@@ -132,8 +132,23 @@ void MarkdownPart::setupActions(Modus modus)
     closeFindBarShortcut->setContext(Qt::WidgetWithChildrenShortcut);
     connect(closeFindBarShortcut, &QShortcut::activated, m_searchToolBar, &SearchToolBar::hide);
 
-    // no keyboard zoom shortcuts: the host application (Kate) owns Ctrl+=/-/0
-    // for its editor and they conflict; ctrl+wheel over the view is the zoom UI
+    // deliberately no default shortcuts: the host application (Kate) owns
+    // Ctrl+=/-/0 for its editor and they conflict as ambiguous; ctrl+wheel
+    // over the view zooms, and hosts can bind their own shortcuts to these
+    m_zoomInAction = new QAction(QIcon::fromTheme(QStringLiteral("zoom-in")),
+                                 i18nc("@action", "Zoom &In"), this);
+    connect(m_zoomInAction, &QAction::triggered, this, [this] { changeZoom(1); });
+    actionCollection()->addAction(QStringLiteral("view_zoom_in"), m_zoomInAction);
+
+    m_zoomOutAction = new QAction(QIcon::fromTheme(QStringLiteral("zoom-out")),
+                                  i18nc("@action", "Zoom &Out"), this);
+    connect(m_zoomOutAction, &QAction::triggered, this, [this] { changeZoom(-1); });
+    actionCollection()->addAction(QStringLiteral("view_zoom_out"), m_zoomOutAction);
+
+    m_zoomResetAction = new QAction(QIcon::fromTheme(QStringLiteral("zoom-original")),
+                                    i18nc("@action", "Actual &Size"), this);
+    connect(m_zoomResetAction, &QAction::triggered, this, [this] { setZoom(1.0); });
+    actionCollection()->addAction(QStringLiteral("view_actual_size"), m_zoomResetAction);
 }
 
 void MarkdownPart::loadFontSettings()
@@ -363,6 +378,13 @@ void MarkdownPart::handleContextMenuRequest(QPoint globalPos,
             menu.addAction(createCopyLinkUrlAction(&menu, linkUrl));
         }
     }
+
+    menu.addSeparator();
+    QMenu* zoomMenu = menu.addMenu(QIcon::fromTheme(QStringLiteral("zoom")),
+                                   i18nc("@title:menu", "Zoom (%1%)", qRound(m_zoom * 100)));
+    zoomMenu->addAction(m_zoomInAction);
+    zoomMenu->addAction(m_zoomOutAction);
+    zoomMenu->addAction(m_zoomResetAction);
 
     if (!menu.isEmpty()) {
         menu.exec(globalPos);
